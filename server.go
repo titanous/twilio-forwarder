@@ -78,7 +78,7 @@ func incomingSMS(m mailgun.Mailgun, req *http.Request, log *log.Logger) {
 		return
 	}
 
-	log.Print("Got message from ", req.FormValue("From"))
+	log.Println("Got message from", req.FormValue("From"))
 	msg := mailgun.NewMessage(
 		req.FormValue("From")+"@"+emailDomain,
 		"New text from "+req.FormValue("From"),
@@ -88,10 +88,10 @@ func incomingSMS(m mailgun.Mailgun, req *http.Request, log *log.Logger) {
 	msg.SetDKIM(true)
 	_, _, err := m.Send(msg)
 	if err != nil {
-		log.Print("Email send error: ", err)
+		log.Println("Email send error:", err)
 		return
 	}
-	log.Print("Email sent to ", emailTo)
+	log.Println("Email sent to", emailTo)
 }
 
 func incomingEmail(tc *twilio.Client, req *http.Request, log *log.Logger) {
@@ -100,7 +100,7 @@ func incomingEmail(tc *twilio.Client, req *http.Request, log *log.Logger) {
 		req.FormValue("timestamp"),
 		req.FormValue("signature"),
 	); err != nil {
-		log.Print("Mailgun request verification failed: ", err)
+		log.Println("Mailgun request verification failed:", err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func incomingEmail(tc *twilio.Client, req *http.Request, log *log.Logger) {
 	spf := req.FormValue("X-Mailgun-Dkim-Check-Result")
 	sender := req.FormValue("sender")
 	if dkim != "Pass" || spf != "Pass" || sender != emailTo {
-		log.Print("Email verification failed: SPF: %s, DKIM: %s, addr: %s", spf, dkim, sender)
+		log.Printf("Email verification failed: SPF: %s, DKIM: %s, addr: %s", spf, dkim, sender)
 		return
 	}
 
@@ -116,10 +116,10 @@ func incomingEmail(tc *twilio.Client, req *http.Request, log *log.Logger) {
 	dest := strings.SplitN(req.FormValue("recipient"), "@", 2)[0]
 	_, _, err := tc.Messages.Send(smsFrom, dest, params)
 	if err != nil {
-		log.Print("SMS send failed: ", err)
+		log.Println("SMS send failed:", err)
 		return
 	}
-	log.Print("SMS sent to ", dest)
+	log.Println("SMS sent to", dest)
 }
 
 func requestURL(req *http.Request) string {
