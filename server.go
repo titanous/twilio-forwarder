@@ -13,6 +13,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/codegangsta/martini"
 	"github.com/mbanzon/mailgun"
@@ -42,11 +43,18 @@ func main() {
 
 	r.Post("/sms", incomingSMS)
 	r.Post("/email", incomingEmail)
+	r.Get("/ping", func() {})
 
+	go pinger()
 	m.Run()
 }
 
-// self-pinger
+func pinger() {
+	for _ = range time.Tick(time.Minute) {
+		http.Get(os.Getenv("BASE_URL") + "/ping")
+	}
+}
+
 // incoming call -> forward -> voicemail
 // incoming voicemail -> email
 
