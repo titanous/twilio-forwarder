@@ -41,7 +41,7 @@ func main() {
 	m.Map(tc)
 	m.MapTo(mc, (*mailgun.Mailgun)(nil))
 
-	r.Post("/sms", incomingSMS)
+	r.Post("/sms", verifyTwilioReq, incomingSMS)
 	r.Post("/email", incomingEmail)
 	r.Get("/ping", func() {})
 
@@ -73,11 +73,6 @@ func sendVoicemail() {
 }
 
 func incomingSMS(m mailgun.Mailgun, req *http.Request, log *log.Logger) {
-	if err := verifyTwilioReq(req); err != nil {
-		log.Print("Twilio request verification failed: ", err)
-		return
-	}
-
 	log.Println("Got message from", req.FormValue("From"))
 	msg := mailgun.NewMessage(
 		req.FormValue("From")+"@"+emailDomain,
@@ -126,9 +121,14 @@ func requestURL(req *http.Request) string {
 	return "https://" + req.Host + req.RequestURI
 }
 
-func verifyTwilioReq(req *http.Request) error {
+func verifyTwilioReq(w http.ResponseWriter, req *http.Request, log *log.Logger) {
 	req.ParseForm()
-	return verifyTwilioSig(requestURL(req), req.PostForm, req.Header.Get("X-Twilio-Signature"))
+	err := verifyTwilioSig(requestURL(req), req.PostForm, req.Header.Get("X-Twilio-Signature"))
+	if err != nil {
+		log.Println("Twilio request verification failed:", err)
+		w.WriteHeader(403)
+		return
+	}
 }
 
 func verifyTwilioSig(url string, data url.Values, signature string) error {
