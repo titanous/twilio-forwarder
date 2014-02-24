@@ -137,7 +137,7 @@ func incomingVoicemail(tc *twilio.Client, m mailgun.Mailgun, req *http.Request, 
 	}
 }
 
-func incomingSMS(m mailgun.Mailgun, req *http.Request, log *log.Logger) {
+func incomingSMS(m mailgun.Mailgun, req *http.Request, log *log.Logger) string {
 	log.Println(req.Form)
 	msg := mailgun.NewMessage(
 		req.FormValue("From")+"@"+emailDomain,
@@ -149,9 +149,10 @@ func incomingSMS(m mailgun.Mailgun, req *http.Request, log *log.Logger) {
 	_, _, err := m.Send(msg)
 	if err != nil {
 		log.Println("Email send error:", err)
-		return
+	} else {
+		log.Println("Email sent to", emailTo)
 	}
-	log.Println("Email sent to", emailTo)
+	return twilioResponse("")
 }
 
 func incomingEmail(tc *twilio.Client, req *http.Request, log *log.Logger) {
