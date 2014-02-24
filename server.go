@@ -68,7 +68,7 @@ func twilioResponse(s string) string {
 }
 
 func incomingCall() string {
-	return twilioResponse(`<Dial timeout="5" action="/record-voicemail">` + callDest + `</Dial>`)
+	return twilioResponse(`<Dial action="/record-voicemail">` + callDest + `</Dial>`)
 }
 
 func recordVoicemail(req *http.Request) string {
