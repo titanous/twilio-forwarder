@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/xml"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +15,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/codegangsta/martini"
@@ -27,6 +30,7 @@ var mailgunKey = os.Getenv("MAILGUN_KEY")
 var smsFrom = os.Getenv("FROM_NUMBER")
 var emailDomain = os.Getenv("FROM_DOMAIN")
 var emailTo = os.Getenv("TO_EMAIL")
+var callDest = os.Getenv("CALL_DEST")
 
 func main() {
 	tc := twilio.NewClient(twilioAccount, twilioKey, nil)
@@ -41,8 +45,12 @@ func main() {
 	m.Map(tc)
 	m.MapTo(mc, (*mailgun.Mailgun)(nil))
 
+	r.Post("/call", verifyTwilioReq, incomingCall)
+	r.Post("/record-voicemail", verifyTwilioReq, recordVoicemail)
+	r.Post("/voicemail", verifyTwilioReq, incomingVoicemail)
 	r.Post("/sms", verifyTwilioReq, incomingSMS)
 	r.Post("/email", incomingEmail)
+	r.Post("/hangup", hangup)
 	r.Get("/ping", func() {})
 
 	go pinger()
@@ -55,25 +63,82 @@ func pinger() {
 	}
 }
 
-// incoming call -> forward -> voicemail
-// incoming voicemail -> email
-
-func incomingCall() {
-	// dial number
-	// action=dialfinished
+func twilioResponse(s string) string {
+	return xml.Header + "<Response>\n" + s + "\n</Response>"
 }
 
-func dialFinished() {
-	// check dialstatus
-	// record transcribeAction=sendVoicemail
+func incomingCall() string {
+	return twilioResponse(`<Dial timeout="5" action="/record-voicemail">` + callDest + `</Dial>`)
 }
 
-func sendVoicemail() {
-	// send email
+func recordVoicemail(req *http.Request) string {
+	if req.FormValue("DialCallStatus") == "completed" {
+		return hangup()
+	}
+	sayNumber := strings.Replace(strings.TrimLeft(smsFrom, "+1"), "", " ", -1)
+	say := "<Say>You have reached" + sayNumber + ". Please leave a message after the tone.</Say>\n"
+	return twilioResponse(say + `<Record action="/hangup" transcribeCallback="/voicemail" maxLength="120" />`)
+}
+
+func hangup() string {
+	return twilioResponse("<Hangup/>")
+}
+
+type transcription struct {
+	Duration int    `json:"duration,string"`
+	Text     string `json:"transcription_text"`
+}
+
+var voicemailTemplate = template.Must(template.New("vm").Parse(`From: {{.From}}
+Duration: {{.Duration}}s
+Recording: {{.Recording}}
+
+{{.Text}}`))
+
+type voicemailData struct {
+	From      string
+	Duration  int
+	Recording string
+	Text      string
+}
+
+func incomingVoicemail(tc *twilio.Client, m mailgun.Mailgun, req *http.Request, log *log.Logger) {
+	log.Printf("%#v", req.Form)
+	transReq, err := tc.NewRequest("GET", req.FormValue("TranscriptionUrl")+".json", nil)
+	if err != nil {
+		log.Println("Transcription req build error:", err)
+		return
+	}
+	var trans transcription
+	_, err = tc.Do(transReq, &trans)
+	if err != nil {
+		log.Println("Transcription req error:", err)
+		return
+	}
+
+	var buf bytes.Buffer
+	err = voicemailTemplate.Execute(&buf, &voicemailData{
+		From:      req.FormValue("From"),
+		Duration:  trans.Duration,
+		Recording: req.FormValue("RecordingUrl"),
+		Text:      trans.Text,
+	})
+	if err != nil {
+		log.Println("Email template error:", err)
+		return
+	}
+
+	msg := mailgun.NewMessage("voicemail@"+emailDomain, "New voicemail from "+req.FormValue("From"), buf.String(), emailTo)
+	msg.SetDKIM(true)
+	_, _, err = m.Send(msg)
+	if err != nil {
+		log.Println("Voicemail send error:", err)
+		return
+	}
 }
 
 func incomingSMS(m mailgun.Mailgun, req *http.Request, log *log.Logger) {
-	log.Println("Got message from", req.FormValue("From"))
+	log.Println(req.Form)
 	msg := mailgun.NewMessage(
 		req.FormValue("From")+"@"+emailDomain,
 		"New text from "+req.FormValue("From"),
