@@ -1,0 +1,32 @@
+{
+	"ImportPath": "github.com/titanous/twilio-forwarder",
+	"GoVersion": "go1.2",
+	"Deps": [
+		{
+			"ImportPath": "github.com/codegangsta/inject",
+			"Rev": "346a984957aa24276ebc5e7b16b3ac6a50fe8138"
+		},
+		{
+			"ImportPath": "github.com/codegangsta/martini",
+			"Comment": "v0.1-79-gec4ae4a",
+			"Rev": "ec4ae4a9fa9e404c1a7ca3b3419d6b75649aaee7"
+		},
+		{
+			"ImportPath": "github.com/mbanzon/mailgun",
+			"Rev": "f58067bf48e7793826daa4c04b188483019aa731"
+		},
+		{
+			"ImportPath": "github.com/mbanzon/simplehttp",
+			"Rev": "077d8a4c09002a779db6ec3de609b6957ef4fd0d"
+		},
+		{
+			"ImportPath": "github.com/subosito/twilio",
+			"Comment": "v0.0.1-17-gb8469d7",
+			"Rev": "b8469d7f2b1aa7ed21618dd76ef0432d308cb62b"
+		},
+		{
+			"ImportPath": "github.com/subosito/underscore",
+			"Rev": "9d41db6a5c5fffa733e1c9649e1635efb6e52bff"
+		}
+	]
+}
