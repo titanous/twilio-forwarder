@@ -16,10 +16,10 @@ Name | Description | Example
 `MAILGUN_PUBLIC_KEY` | Mailgun Public Key | `pubkey-3ax6xnjp29jd6fds4gc373sgvjxteol0`
 `MAILGUN_KEY` | Mailgun API key | `key-3ax6xnjp29jd6fds4gc373sgvjxteol0`
 `FROM_NUMBER` | Source number for outgoing SMS messages. Must be confirmed or owned in Twilio. | `+15555551212`
-`FROM_DOMAIN` | Domain to use for email. Must be configured in Mailgun | `sms.example.com`
+`FROM_DOMAIN` | Domain to use for email. Must be configured in Mailgun. | `sms.example.com`
 `TO_EMAIL` | Email to send/receive SMS messages and voicemails to. Must sign outbound messages with DKIM and have valid SPF. | `user@example.com`
 `CALL_DEST` | Number to forward phone calls to. Should not have voicemail enabled. | `+15555551212`
-`BASE_URL` | The URL to the application with no trailing slash | `https://example.herokuapp.com`
+`BASE_URL` | The URL to the application with no trailing slash. | `https://example.herokuapp.com`
 
 ## Setup
 
