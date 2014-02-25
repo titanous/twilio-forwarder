@@ -141,7 +141,7 @@ func incomingSMS(m mailgun.Mailgun, req *http.Request, log *log.Logger) string {
 	log.Println(req.Form)
 	msg := mailgun.NewMessage(
 		req.FormValue("From")+"@"+emailDomain,
-		"New text from "+req.FormValue("From"),
+		"SMS from "+req.FormValue("From"),
 		req.FormValue("Body"),
 		emailTo,
 	)
